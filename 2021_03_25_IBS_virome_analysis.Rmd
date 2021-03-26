@@ -1,0 +1,1424 @@
+---
+title: "2021_03_25_IBS_virome_analysis"
+author: "Kathie Mihindukulasuriya"
+date: "3/25/2021"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+options(scipen = 999) # not necessary but prevents o mix of decimals and scientific notation
+```
+
+```{r setup}
+# Load libraries
+library("data.table"); packageVersion("data.table")
+library("phyloseq"); packageVersion("phyloseq")
+library("plotly"); packageVersion("plotly")
+library("ggpubr"); packageVersion("ggpubr")
+library("janitor"); packageVersion("janitor")
+library("rstatix"); packageVersion("rstatix")
+library("vegan"); packageVersion("vegan") # adonis
+library("forestmangr"); packageVersion("forestmangr") # for rounding all numeric columns
+library("pairwiseAdonis"); packageVersion("pairwiseAdonis")
+library("cowplot"); packageVersion("cowplot")
+library("RColorBrewer"); packageVersion("RColorBrewer")
+library("dendextend"); packageVersion("dendextend")
+library("ComplexHeatmap"); packageVersion("ComplexHeatmap")
+library("plyr"); packageVersion("plyr")
+library("tableone"); packageVersion("tableone")
+library("tidyverse"); packageVersion("tidyverse")
+
+# Global settings
+theme_set(theme_bw())
+```
+
+# Import Data
+```{r import-data}
+# Import mapping file and update phyloseq objects
+merged.MAP <- import_qiime_sample_data("2020_12_01_mapping_IBS_KM_merge.txt")
+date <- read.table("mapping_date.txt", sep="\t", header=TRUE)
+
+# Rounded Counts for alpha diversity - contig annotation
+ps0.merged_contig.round <- readRDS("2020_12_01_Ruben_IBS_ps0_contig_merged_round.RDS")
+
+# Rounded Counts for alpha diversity - species annotation
+ps0.merged_contig.sp.round <- readRDS("2020_12_01_Ruben_IBS_ps0_contig.sp_merged_round.RDS")
+
+# Normalized counts - contig annotation
+ps0.merged_contig <- readRDS("2020_12_01_Ruben_IBS_ps0_contig_merged.RDS")
+
+# Normalized counts - species annotation
+ps0.merged_contig.sp <- readRDS("2020_12_01_Ruben_IBS_ps0_contig.sp_merged.RDS")
+
+# Contig lengths
+contig_info <- read.table("Ruben_IBS_new_CAT_CT2_CAT_contig_taxonomy_v2.txt", sep="\t", header=TRUE)
+
+# Additional data
+baltimore <- fread("2020_07_27_Viral_classification_table_ICTV2019.txt", stringsAsFactors = TRUE)
+```
+
+# Function to allow word wrap in figures
+```{r add-function-to-word-wrap}
+# Default 15 character target width. 
+swr = function(string, nwrap=15) {
+  paste(strwrap(string, width=nwrap), collapse="\n")
+}
+
+swr = Vectorize(swr)
+
+# Default 20 character target width.
+swr20 = function(string, nwrap=20) {
+  paste(strwrap(string, width=nwrap), collapse="\n")
+}
+
+swr20 = Vectorize(swr20)
+
+# Default 30 character target width.
+swr30 = function(string, nwrap=30) {
+  paste(strwrap(string, width=nwrap), collapse="\n")
+}
+
+swr30 = Vectorize(swr30)
+```
+
+## Group significance testing with ADONIS function
+```{r adonis-script}
+# Set a random seed so that exact results can be reproduced
+set.seed(10000)
+
+# Function to run adonis test on a physeq object and a variable from metadata 
+doadonis.b <- function(physeq, category) {
+  bdist.b <- phyloseq::distance(physeq, "bray")
+  col.b <- as(sample_data(physeq), "data.frame")[ ,category]
+  
+  # Adonis test
+  adonis.bdist.b <- adonis(bdist.b ~ col.b)
+  print("Adonis results (Bray):")
+  print(adonis.bdist.b)
+}
+```
+
+# Melt Phyloseq objects
+```{r melt-phyloseq}
+# Rounded Counts for alpha diversity - contig annotation
+ps0.merged_contig.round.m <- ps0.merged_contig.round  %>%
+  speedyseq::psmelt() %>%
+  as_tibble()
+
+# Convert to data table. This may take a bit of time as well
+ps0.merged_contig.round.m <- data.table(ps0.merged_contig.round.m)
+dim(ps0.merged_contig.round.m)
+# [1] 121050     45
+
+# Rounded Counts for alpha diversity - species annotation
+ps0.merged_contig.sp.round.m <- ps0.merged_contig.sp.round  %>%
+  speedyseq::psmelt() %>%
+  as_tibble()
+
+# Convert to data table. This may take a bit of time as well
+ps0.merged_contig.sp.round.m <- data.table(ps0.merged_contig.sp.round.m)
+dim(ps0.merged_contig.sp.round.m)
+# [1] 77600    44
+
+# Normalized counts - contig annotation
+ps0.merged_contig.m <- ps0.merged_contig %>%
+  speedyseq::psmelt() %>%
+  as_tibble()
+
+# Convert to data table. This may take a bit of time as well
+ps0.merged_contig.m <- data.table(ps0.merged_contig.m)
+
+# Add Baltimore classification
+ps0.merged_contig.m <- left_join(ps0.merged_contig.m, baltimore, by = "Family")
+ps0.merged_contig.m$Family <- as.factor(ps0.merged_contig.m$Family) # left_join may have converted to character
+ps0.merged_contig.m <- data.table(ps0.merged_contig.m)
+dim(ps0.merged_contig.m)
+# [1] 121050     47
+
+# Normalized counts - species annotation
+ps0.merged_contig.sp.m <- ps0.merged_contig.sp %>%
+  speedyseq::psmelt() %>%
+  as_tibble()
+
+# Convert to data table. This may take a bit of time as well
+ps0.merged_contig.sp.m <- data.table(ps0.merged_contig.sp.m)
+
+# Add Baltimore classification
+ps0.merged_contig.sp.m <- left_join(ps0.merged_contig.sp.m, baltimore, by = "Family")
+ps0.merged_contig.sp.m$Family <- as.factor(ps0.merged_contig.sp.m$Family) # left_join may have converted to character
+ps0.merged_contig.sp.m <- data.table(ps0.merged_contig.sp.m)
+dim(ps0.merged_contig.sp.m)
+# [1] 77600    46
+```
+
+# Figure 5B
+```{r norovirus-date}
+# Read in sample - date information
+calici.date <- read.table("2020_11_09_Ruben_IBS_calici_date_out.txt", sep="\t", header=TRUE)
+
+# Put the dates in logical order
+levels(calici.date$biyearly_date)
+calici.date$biyearly_date <- factor(calici.date$biyearly_date, levels=c("07/2014 - 12/2014","01/2015 - 06/2015","07/2015 - 12/2015","01/2016 - 06/2016", "07/2016 - 12/2016"))
+levels(calici.date$biyearly_date)
+
+ # Statistical significance
+# Healthy vs Constipation - Fisher's Exact
+calici.date.contingency <- calici.date %>%
+   mutate(calici_negative = (total - calici_positive))
+
+calici.date_1_HC <- calici.date.contingency %>%
+   filter(biyearly_date =="07/2014 - 12/2014") %>%
+   filter(cohort !="IBS-D") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative) 
+
+calici.date_1_HC %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_1_HC.m <- matrix(unlist(calici.date_1_HC), 2)
+calici.date_1_HC.fisher <- fisher.test(calici.date_1_HC.m)
+
+calici.date_1_HC.fisher$p.value
+# [1] 1
+
+calici.date_2_HC <- calici.date.contingency %>%
+   filter(biyearly_date =="01/2015 - 06/2015") %>%
+   filter(cohort !="IBS-D") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative)
+
+calici.date_2_HC %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_2_HC.m <- matrix(unlist(calici.date_2_HC), 2)
+calici.date_2_HC.fisher <- fisher.test(calici.date_2_HC.m)
+
+calici.date_2_HC.fisher$p.value
+# [1] 1
+
+calici.date_3_HC <- calici.date.contingency %>%
+   filter(biyearly_date =="07/2015 - 12/2015") %>%
+   filter(cohort !="IBS-D") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative)
+
+calici.date_3_HC %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_3_HC.m <- matrix(unlist(calici.date_3_HC), 2)
+calici.date_3_HC.fisher <- fisher.test(calici.date_3_HC.m)
+
+calici.date_3_HC.fisher$p.value
+# [1] 0.373065
+
+calici.date_4_HC <- calici.date.contingency %>%
+   filter(biyearly_date =="01/2016 - 06/2016") %>%
+   filter(cohort !="IBS-D") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative)
+
+calici.date_4_HC %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_4_HC.m <- matrix(unlist(calici.date_4_HC), 2)
+calici.date_4_HC.fisher <- fisher.test(calici.date_4_HC.m)
+
+calici.date_4_HC.fisher$p.value
+# [1] 0.03866722 *
+
+calici.date_5_HC <- calici.date.contingency %>%
+   filter(biyearly_date =="07/2016 - 12/2016") %>%
+   filter(cohort !="IBS-D") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative)
+
+calici.date_5_HC %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_5_HC.m <- matrix(unlist(calici.date_5_HC), 2)
+calici.date_5_HC.fisher <- fisher.test(calici.date_5_HC.m)
+
+calici.date_5_HC.fisher$p.value
+# [1] 0.02293295 *
+
+# Healthy vs Diarrhea - Fisher's Exact
+calici.date_1_HD <- calici.date.contingency %>%
+   filter(biyearly_date =="07/2014 - 12/2014") %>%
+   filter(cohort !="IBS-C") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative) 
+
+calici.date_1_HD %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_1_HD.m <- matrix(unlist(calici.date_1_HD), 2)
+calici.date_1_HD.fisher <- fisher.test(calici.date_1_HD.m)
+
+calici.date_1_HD.fisher$p.value
+# [1] 1
+
+calici.date_2_HD <- calici.date.contingency %>%
+   filter(biyearly_date =="01/2015 - 06/2015") %>%
+   filter(cohort !="IBS-C") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative)
+
+calici.date_2_HD %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_2_HD.m <- matrix(unlist(calici.date_2_HD), 2)
+calici.date_2_HD.fisher <- fisher.test(calici.date_2_HD.m)
+
+calici.date_2_HD.fisher$p.value
+# [1] 1
+
+calici.date_3_HD <- calici.date.contingency %>%
+   filter(biyearly_date =="07/2015 - 12/2015") %>%
+   filter(cohort !="IBS-C") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative)
+
+calici.date_3_HD %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_3_HD.m <- matrix(unlist(calici.date_3_HD), 2)
+calici.date_3_HD.fisher <- fisher.test(calici.date_3_HD.m)
+
+calici.date_3_HD.fisher$p.value
+# [1] 0.06523936
+
+calici.date_4_HD <- calici.date.contingency %>%
+   filter(biyearly_date =="01/2016 - 06/2016") %>%
+   filter(cohort !="IBS-C") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative)
+
+calici.date_4_HD %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_4_HD.m <- matrix(unlist(calici.date_4_HD), 2)
+calici.date_4_HD.fisher <- fisher.test(calici.date_4_HD.m)
+
+calici.date_4_HD.fisher$p.value
+# [1] 0.03866722 *
+
+calici.date_5_HD <- calici.date.contingency %>%
+   filter(biyearly_date =="07/2016 - 12/2016") %>%
+   filter(cohort !="IBS-C") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative)
+
+calici.date_5_HD %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_5_HD.m <- matrix(unlist(calici.date_5_HD), 2)
+calici.date_5_HD.fisher <- fisher.test(calici.date_5_HD.m)
+
+calici.date_5_HD.fisher$p.value
+# [1] 0.1111111
+
+# Constipation vs Diarrhea - Fisher's Exact
+calici.date_1_CD <- calici.date.contingency %>%
+   filter(biyearly_date =="07/2014 - 12/2014") %>%
+   filter(cohort !="Healthy") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative) 
+
+calici.date_1_CD %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_1_CD.m <- matrix(unlist(calici.date_1_CD), 2)
+calici.date_1_CD.fisher <- fisher.test(calici.date_1_CD.m)
+
+calici.date_1_CD.fisher$p.value
+# [1] 1
+
+calici.date_2_CD <- calici.date.contingency %>%
+   filter(biyearly_date =="01/2015 - 06/2015") %>%
+   filter(cohort !="Healthy") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative)
+
+calici.date_2_CD %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_2_CD.m <- matrix(unlist(calici.date_2_CD), 2)
+calici.date_2_CD.fisher <- fisher.test(calici.date_2_CD.m)
+
+calici.date_2_CD.fisher$p.value
+# [1] 0.3684211
+
+calici.date_3_CD <- calici.date.contingency %>%
+   filter(biyearly_date =="07/2015 - 12/2015") %>%
+   filter(cohort !="Healthy") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative)
+
+calici.date_3_CD %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_3_CD.m <- matrix(unlist(calici.date_3_CD), 2)
+calici.date_3_CD.fisher <- fisher.test(calici.date_3_CD.m)
+
+calici.date_3_CD.fisher$p.value
+# [1] 1
+
+calici.date_4_CD <- calici.date.contingency %>%
+   filter(biyearly_date =="01/2016 - 06/2016") %>%
+   filter(cohort !="Healthy") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative)
+
+calici.date_4_CD %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_4_CD.m <- matrix(unlist(calici.date_4_CD), 2)
+calici.date_4_CD.fisher <- fisher.test(calici.date_4_CD.m)
+
+calici.date_4_CD.fisher$p.value
+# [1] 1
+
+calici.date_5_CD <- calici.date.contingency %>%
+   filter(biyearly_date =="07/2016 - 12/2016") %>%
+   filter(cohort !="Healthy") %>%
+   droplevels() %>%
+   select(cohort, calici_positive, calici_negative)
+
+calici.date_5_CD %>% remove_rownames %>% column_to_rownames(var="cohort")
+calici.date_5_CD.m <- matrix(unlist(calici.date_5_CD), 2)
+calici.date_5_CD.fisher <- fisher.test(calici.date_5_CD.m)
+
+calici.date_5_CD.fisher$p.value
+# [1] 0.05454545 
+ 
+# Plot 
+calici.date.fin <- ggplot(data = calici.date.contingency, aes(x = biyearly_date, y = total, color=cohort)) + 
+  geom_bar(position="dodge", stat = "identity", fill = "white") +
+  scale_color_manual(values = c("Healthy" = "#666666", "IBS-C" = "#D95F02", "IBS-D" = "#0072B2")) +
+  geom_bar(data = calici.date.contingency, aes(x = biyearly_date, y = calici_positive, group=cohort, fill=cohort),position="dodge", stat = "identity") +  
+  scale_fill_manual(values = c("Healthy" = "#666666", "IBS-C" = "#D95F02", "IBS-D" = "#0072B2")) +
+    ylab("Number of Samples") +
+    xlab("Sample taken") +
+    theme(axis.text.x = element_text(size = 8)) # angle = 45, vjust = 0.5, hjust=0.5,
+
+calici.date.fin.grid <- plot_grid(calici.date.fin, labels = 'B')
+
+ggsave(calici.date.fin.grid, filename = './figures/Fig5B_calici_cohort_proportion.pdf', width = 7, height = 4.9, dpi = 600)
+```
+
+# Fig 3C - Use Kruska-Wallis and Dunn test to identify significant differences for boxplots
+```{r kruskal-wallis-dunn}
+# Set a filter for potential viral species of interest:
+# Require 100 total tpm per Species
+abundant.viral.species.100.tmp <- ps0.merged_contig.sp.m %>%
+  filter(Kingdom =="Viruses") %>%
+  droplevels() %>%
+  group_by(Family, Species) %>%
+  mutate(scaled_abundance_median = Abundance) %>%
+  summarise(total = sum(scaled_abundance_median)) %>% 
+  filter(total >= 100) %>% 
+  droplevels()
+
+list.100.viral <- abundant.viral.species.100.tmp$Species #85
+
+# Require at least 5 tpm in at least 3 samples
+abundant.viral.species.100.5  <- ps0.merged_contig.sp.m %>%
+   filter(Species %in% list.100.viral) %>%
+    droplevels() %>%
+    group_by(Species, Abundance) %>%
+    summarise(num_abun = sum(Abundance)) %>%
+    mutate(num_abun.fin = sum(num_abun >= 5)) %>%
+    filter(num_abun.fin >=3) %>% 
+    droplevels()
+
+abundant.viral.species.keep.100.5 <- unique(abundant.viral.species.100.5$Species) # 44
+
+abundant.viral.species.data.100.5 <- ps0.merged_contig.sp.m %>%
+    filter(Species %in% abundant.viral.species.keep.100.5) %>%
+    droplevels()
+
+abundant.viral.species.info.100.5 <- abundant.viral.species.data.100.5 %>% 
+  distinct(Family, Genus, Species, .keep_all = F)
+
+abundant.viral.species.info.100.5
+
+table(abundant.viral.species.info.100.5$Family)
+
+# Podoviridae
+podo.all <- abundant.viral.species.data.100.5 %>%
+    filter(Family == "Podoviridae") %>%
+    group_by(Species) %>%
+    mutate(scaled_abundance_median_plus = Abundance + 1) %>%
+    mutate(scaled_abundance_median = Abundance) %>%
+    droplevels() 
+
+# Kruskal-wallis test - Healthy, IBS-C, IBS-D
+podo.all.kruskal <- podo.all %>%
+  kruskal_test(scaled_abundance_median ~ cohort) %>%
+  add_significance()
+podo.all.kruskal.fin <- subset(podo.all.kruskal, p.signif !="ns")
+#   Species                  .y.                         n statistic    df     p method         p.signif
+# 1 crAss-like viruses sp. cat1631 scaled_abundance_median    50      6.93     2 0.0313  Kruskal-Wallis *
+# 2 crAss-like viruses sp. cat2025 scaled_abundance_median    50     10.5      2 0.00517 Kruskal-Wallis **
+
+# Dunn's post test
+stat.test.podo.all <- podo.all %>%
+  dunn_test(scaled_abundance_median ~ cohort, p.adjust.method = "bonferroni") %>%
+  add_significance() %>%
+  arrange(p.adj.signif)
+stat.test.podo.all.fin <- subset(stat.test.podo.all, p.adj.signif !="ns")
+#  Species                  .y.                     group1  group2    n1    n2 statistic     p p.adj p.adj.signif
+# 1 crAss-like viruses sp. cat1631 scaled_abundance_median IBS-C   IBS-D     17    17      2.53 0.0116  0.0347 *
+# 2 crAss-like viruses sp. cat2025 scaled_abundance_median Healthy IBS-D     16    17      2.78 0.00541 0.0162 *
+# 3 crAss-like viruses sp. cat2025 scaled_abundance_median IBS-C   IBS-D     17    17      2.82 0.00473 0.0142 *
+
+# Siphoviridae
+sipho.all <- abundant.viral.species.data.100.5 %>%
+    filter(Family == "Siphoviridae") %>%
+    group_by(Species) %>%
+    mutate(scaled_abundance_median_plus = Abundance + 1) %>%
+    mutate(scaled_abundance_median = Abundance) %>%
+    droplevels() 
+table(sipho.all$Species)
+
+# Kruskal-wallis test - Healthy, IBS-C, IBS-D
+sipho.all.kruskal <- sipho.all %>%
+  kruskal_test(scaled_abundance_median ~ cohort) %>%
+  add_significance()
+sipho.all.kruskal.fin <- subset(sipho.all.kruskal, p.signif !="ns")
+#   Species                  .y.                         n statistic    df     p method         p.signif
+# 1 Rhodococcus virus Pepy6 scaled_abundance_median    50      7.67     2 0.0216 Kruskal-Wallis *      
+
+# Dunn's post test
+stat.test.sipho.all <- sipho.all %>%
+  dunn_test(scaled_abundance_median ~ cohort, p.adjust.method = "bonferroni") %>%
+  add_significance() %>%
+  arrange(p.adj.signif)
+stat.test.sipho.all.fin <- subset(stat.test.sipho.all, p.adj.signif !="ns")
+#  Species                  .y.                     group1  group2    n1    n2 statistic     p p.adj p.adj.signif
+# 1 Rhodococcus virus Pepy6 scaled_abundance_median IBS-C  IBS-D     17    17      2.74 0.00622 0.0186 *
+
+# Microviridae
+micro.all <- abundant.viral.species.data.100.5 %>%
+    filter(Family == "Microviridae") %>%
+    group_by(Species) %>%
+    mutate(scaled_abundance_median_plus = Abundance + 1) %>%
+    mutate(scaled_abundance_median = Abundance) %>%
+    droplevels() 
+table(micro.all$Species)
+
+# Kruskal-wallis test - Healthy, IBS-C, IBS-D
+micro.all.kruskal <- micro.all %>%
+  kruskal_test(scaled_abundance_median ~ cohort) %>%
+  add_significance()
+micro.all.kruskal.fin <- subset(micro.all.kruskal, p.signif !="ns")
+#   Species                  .y.                         n statistic    df     p method         p.signif
+# 1 Chlamydiamicrovirus_undefined_species scaled_abundance_median    50     10.3      2 0.00586  Kruskal-Wallis **
+# 2 Microviridae sp.                      scaled_abundance_median    50      7.64     2 0.0219   Kruskal-Wallis *
+# 3 Poophage MBI-2016a                    scaled_abundance_median    50     14.3      2 0.000769 Kruskal-Wallis ***
+# 4 Spiromicrovirus_undefined_species     scaled_abundance_median    50     12.7      2 0.00173  Kruskal-Wallis **
+# 5 unclassified Microviridae sp. cat1991 scaled_abundance_median    50      7.88     2 0.0194   Kruskal-Wallis *
+
+# Dunn's post test
+stat.test.micro.all <- micro.all %>%
+  dunn_test(scaled_abundance_median ~ cohort, p.adjust.method = "bonferroni") %>%
+  add_significance() %>%
+  arrange(p.adj.signif)
+stat.test.micro.all.fin <- subset(stat.test.micro.all, p.adj.signif !="ns")
+#  Species                  .y.                     group1  group2    n1    n2 statistic     p p.adj p.adj.signif
+# 1 Microviridae sp.                      scaled_abundance_median IBS-C   IBS-D     17    17      2.72 0.00660  0.0198   *
+# 2 Poophage MBI-2016a                    scaled_abundance_median Healthy IBS-C     16    17      2.71 0.00665  0.0200   *
+# 3 Spiromicrovirus_undefined_species     scaled_abundance_median IBS-C   IBS-D     17    17     -2.89 0.00381  0.0114   *
+# 4 unclassified Microviridae sp. cat1991 scaled_abundance_median Healthy IBS-D     16    17      2.74 0.00613  0.0184   *
+# 5 Chlamydiamicrovirus_undefined_species scaled_abundance_median IBS-C   IBS-D     17    17     -3.04 0.00237  0.00712  **
+# 6 Spiromicrovirus_undefined_species     scaled_abundance_median Healthy IBS-C     16    17      3.24 0.00120  0.00359  **
+# 7 Poophage MBI-2016a                    scaled_abundance_median IBS-C   IBS-D     17    17     -3.64 0.000278 0.000834 *** 
+
+# Myoviridae
+myo.all <- abundant.viral.species.data.100.5 %>%
+    filter(Family == "Myoviridae") %>%
+    group_by(Species) %>%
+    mutate(scaled_abundance_median_plus = Abundance + 1) %>%
+    mutate(scaled_abundance_median = Abundance) %>%
+    droplevels() 
+table(myo.all$Species)
+
+# Kruskal-wallis test - Healthy, IBS-C, IBS-D
+myo.all.kruskal <- myo.all %>%
+  kruskal_test(scaled_abundance_median ~ cohort) %>%
+  add_significance()
+myo.all.kruskal.fin <- subset(myo.all.kruskal, p.signif !="ns")
+#   Species                  .y.                         n statistic    df     p method         p.signif
+# 1 Cronobacter virus CR3     scaled_abundance_median    50      13.0     2 0.00149 Kruskal-Wallis **
+# 2 Lactobacillus virus LBR48 scaled_abundance_median    50      15.4     2 0.00046 Kruskal-Wallis ***
+
+# Dunn's post test
+stat.test.myo.all <- myo.all %>%
+  dunn_test(scaled_abundance_median ~ cohort, p.adjust.method = "bonferroni") %>%
+  add_significance() %>%
+  arrange(p.adj.signif)
+stat.test.myo.all.fin <- subset(stat.test.myo.all, p.adj.signif !="ns")
+#  Species                  .y.                     group1  group2    n1    n2 statistic     p p.adj p.adj.signif
+# 1 Cronobacter virus CR3     scaled_abundance_median Healthy IBS-D     16    17      2.97 0.00296  0.00889 **
+# 2 Cronobacter virus CR3     scaled_abundance_median IBS-C   IBS-D     17    17      3.24 0.00118  0.00353 **
+# 3 Lactobacillus virus LBR48 scaled_abundance_median Healthy IBS-C     16    17      3.36 0.000779 0.00234 **
+# 4 Lactobacillus virus LBR48 scaled_abundance_median IBS-C   IBS-D     17    17     -3.41 0.000644 0.00193 **
+
+# Tubulavirales_undefined_family
+tub.all <- abundant.viral.species.data.100.5 %>%
+    filter(Family == "Tubulavirales_undefined_family") %>%
+    group_by(Species) %>%
+    mutate(scaled_abundance_median_plus = Abundance + 1) %>%
+    mutate(scaled_abundance_median = Abundance) %>%
+    droplevels() 
+table(tub.all$Species)
+
+# Kruskal-wallis test - Healthy, IBS-C, IBS-D
+tub.all.kruskal <- tub.all %>%
+  kruskal_test(scaled_abundance_median ~ cohort) %>%
+  add_significance()
+tub.all.kruskal.fin <- subset(tub.all.kruskal, p.signif !="ns")
+
+# Viruses_undefined_phylum_undefined_class_undefined_order_undefined_family
+undef.all <- abundant.viral.species.data.100.5 %>%
+    filter(Family == "Viruses_undefined_phylum_undefined_class_undefined_order_undefined_family") %>%
+    group_by(Species) %>%
+    mutate(scaled_abundance_median_plus = Abundance + 1) %>%
+    mutate(scaled_abundance_median = Abundance) %>%
+    droplevels() 
+table(undef.all$Species)
+
+# Kruskal-wallis test - Healthy, IBS-C, IBS-D
+undef.all.kruskal <- undef.all %>%
+  kruskal_test(scaled_abundance_median ~ cohort) %>%
+  add_significance()
+undef.all.kruskal.fin <- subset(undef.all.kruskal, p.signif !="ns")
+
+# Significant phages: crAss-like viruses sp. cat1631, crAss-like viruses sp. cat2025, Rhodococcus virus Pepy6, Chlamydiamicrovirus_undefined_species, Microviridae sp., Poophage MBI-2016a, Spiromicrovirus_undefined_species, unclassified Microviridae sp. cat1991, Cronobacter virus CR3, Lactobacillus virus LBR48
+
+# Figure 3C
+# Podoviridae
+podo.sig <- podo.all  %>%
+    filter(Species == "crAss-like viruses sp. cat1631" | Species == "crAss-like viruses sp. cat2025") %>%
+    droplevels() 
+
+p.podo <- ggboxplot(podo.sig, x = "cohort", y = "scaled_abundance_median_plus", outlier.shape = NA, width = 0.4) +
+  geom_jitter(size = 1.2, alpha = 0.7, width = 0.1) +
+  facet_grid(Family ~ swr(Species)) +
+  scale_y_log10(labels = scales::scientific) +
+  theme(legend.position="none") +
+  theme_bw(base_size = 9) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(y = "Abundance (log10)", x = "Cohort") +
+  theme(strip.text.y = element_text(size = 8))
+p.podo
+
+# Siphoviridae
+sipho.sig <- sipho.all  %>%
+    filter(Species == "Rhodococcus virus Pepy6") %>%
+    droplevels() 
+
+p.sipho <- ggboxplot(sipho.sig, x = "cohort", y = "scaled_abundance_median_plus", outlier.shape = NA, width = 0.4) +
+  geom_jitter(size = 1.2, alpha = 0.7, width = 0.1) +
+  facet_grid(Family ~ swr(Species)) +
+  scale_y_log10(labels = scales::scientific) +
+  theme(legend.position="none") +
+  theme_bw(base_size = 9) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(y = "Abundance (log10)", x = "Cohort") +
+  theme(strip.text.y = element_text(size = 8))
+p.sipho
+
+# Microviridae
+micro.sig <- micro.all  %>%
+    filter(Species == "Chlamydiamicrovirus_undefined_species" | Species == "Microviridae sp." | Species == "Poophage MBI-2016a" | Species == "Spiromicrovirus_undefined_species" | Species == "unclassified Microviridae sp. cat1991") %>%
+    droplevels() 
+micro.sig$Species <- gsub("_", " ", micro.sig$Species)
+
+p.micro <- ggboxplot(micro.sig, x = "cohort", y = "scaled_abundance_median_plus", outlier.shape = NA, width = 0.4) +
+  geom_jitter(size = 1.2, alpha = 0.7, width = 0.1) +
+  facet_grid(Family ~ swr(Species)) +
+  scale_y_log10(labels = scales::scientific) +
+  theme(legend.position="none") +
+  theme_bw(base_size = 9) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(y = "Abundance (log10)", x = "Cohort") +
+  theme(strip.text.y = element_text(size = 8))
+p.micro
+
+# Myoviridae
+myo.sig <- myo.all  %>%
+    filter(Species == "Cronobacter virus CR3" | Species == "Lactobacillus virus LBR48") %>%
+    droplevels() 
+
+p.myo <- ggboxplot(myo.sig, x = "cohort", y = "scaled_abundance_median_plus", outlier.shape = NA, width = 0.4) +
+  geom_jitter(size = 1.2, alpha = 0.7, width = 0.1) +
+  facet_grid(Family ~ swr(Species)) +
+  scale_y_log10(labels = scales::scientific) +
+  theme(legend.position="none") +
+  theme_bw(base_size = 9) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(y = "Abundance (log10)", x = "Cohort") +
+  theme(strip.text.y = element_text(size = 8))
+p.myo
+
+# Fig 3C Phage boxplots
+p.micro.grid <- plot_grid(p.micro, labels = 'D', nrow=1)
+p.myo.podo.grid <- plot_grid(p.myo, p.podo, p.sipho, nrow=1)
+p.phage.boxplot <- plot_grid(p.micro.grid, p.myo.podo.grid, nrow=2)
+
+ggsave(p.micro.grid, filename = 'Fig3C_phage_boxplot_row1.pdf', width = 7, height = 2.5, dpi = 600)
+
+ggsave(p.myo.podo.grid, filename = 'Fig3C_phage_boxplot_row2.pdf', width = 7, height = 2.5, dpi = 600)
+
+ggsave(p.phage.boxplot, filename = '3CFig3C_phage_boxplot_all.pdf', width = 7, height = 5, dpi = 600)
+
+# Open in Keynote to add significance and resave as PDF
+```
+
+# Fig S2 - Dark Matter
+```{r dark-matter}
+# Dark Matter
+abundant.nonviral.species.100.tmp <- ps0.merged_contig.sp.m %>%
+  filter(Kingdom !="Viruses") %>%
+  droplevels() %>%
+  group_by(Family, Species) %>%
+  mutate(scaled_abundance_median = Abundance) %>%
+  summarise(total = sum(scaled_abundance_median)) %>% 
+  filter(total >= 100) %>% 
+  droplevels()
+
+list.100.nonviral <- abundant.nonviral.species.100.tmp$Species #1018
+
+abundant.nonviral.species.100.5  <- ps0.merged_contig.sp.m %>%
+   filter(Species %in% list.100.nonviral) %>%
+    droplevels() %>%
+    group_by(Species, Abundance) %>%
+    summarise(num_abun = sum(Abundance)) %>%
+    mutate(num_abun.fin = sum(num_abun >= 5)) %>%
+    filter(num_abun.fin >=3) %>% 
+    droplevels()
+
+abundant.nonviral.species.keep.100.5 <- unique(abundant.nonviral.species.100.5$Species) # 678
+
+abundant.nonviral.species.data.100.5 <- ps0.merged_contig.sp.m %>%
+    filter(Species %in% abundant.nonviral.species.keep.100.5) %>%
+    droplevels()
+
+abundant.nonviral.species.info.100.5 <- abundant.nonviral.species.data.100.5 %>% 
+  distinct(Family, Genus, Species, .keep_all = F)
+
+abundant.nonviral.species.info.100.5
+
+table(abundant.nonviral.species.info.100.5$Family)
+
+# not classified
+nc.all <- abundant.nonviral.species.data.100.5 %>%
+    filter(Kingdom == "not classified" & Family == "not classified") %>%
+    group_by(Species) %>%
+    mutate(scaled_abundance_median_plus = Abundance + 1) %>%
+    mutate(scaled_abundance_median = Abundance) %>%
+    droplevels() 
+
+# Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family
+kuf1.all <- abundant.nonviral.species.data.100.5 %>%
+    filter(Family == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family") %>%
+    group_by(Species) %>%
+    mutate(scaled_abundance_median_plus = Abundance + 1) %>%
+    mutate(scaled_abundance_median = Abundance) %>%
+    droplevels() 
+# Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Unclassified virus
+kuf2.all <- abundant.nonviral.species.data.100.5 %>%
+    filter(Family == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Unclassified virus") %>%
+    group_by(Species) %>%
+    mutate(scaled_abundance_median_plus = Abundance + 1) %>%
+    mutate(scaled_abundance_median = Abundance) %>%
+    droplevels() 
+
+dark.all <- rbind(nc.all, kuf1.all, kuf2.all) %>%
+    droplevels() 
+
+# Kruskal-wallis test - Healthy, IBS-C, IBS-D
+dark.all.kruskal <- dark.all %>%
+  kruskal_test(scaled_abundance_median ~ cohort) %>%
+  add_significance()
+dark.all.kruskal.fin <- subset(dark.all.kruskal, p.signif !="ns")
+
+#   Species                    .y.                         n statistic    df         p method         p.signif
+#  1 not classified sp. cat1134 scaled_abundance_median    50     19.4      2 0.0000618 Kruskal-Wallis ****
+#  2 not classified sp. cat1344 scaled_abundance_median    50      8.62     2 0.0134    Kruskal-Wallis *
+#  3 not classified sp. cat1431 scaled_abundance_median    50      7.73     2 0.021     Kruskal-Wallis *
+#  4 not classified sp. cat1538 scaled_abundance_median    50      7.52     2 0.0233    Kruskal-Wallis *
+#  5 not classified sp. cat1867 scaled_abundance_median    50      7.73     2 0.021     Kruskal-Wallis *
+#  6 not classified sp. cat1905 scaled_abundance_median    50     11.5      2 0.00322   Kruskal-Wallis **
+#  7 not classified sp. cat1985 scaled_abundance_median    50      6.37     2 0.0414    Kruskal-Wallis *
+#  8 not classified sp. cat2079 scaled_abundance_median    50     14.8      2 0.000618  Kruskal-Wallis ***
+#  9 not classified sp. cat2120 scaled_abundance_median    50     10.6      2 0.00487   Kruskal-Wallis **
+# 10 not classified sp. cat2509 scaled_abundance_median    50      7.28     2 0.0263    Kruskal-Wallis *
+# … with 47 more rows
+
+# Dunn's post test
+stat.test.dark.all <- dark.all %>%
+  dunn_test(scaled_abundance_median ~ cohort, p.adjust.method = "bonferroni") %>%
+  add_significance() %>%
+  arrange(p.adj.signif)
+stat.test.dark.all.fin <- subset(stat.test.dark.all, p.adj.signif !="ns")
+stat.test.dark.all.fin <- as.data.table(stat.test.dark.all.fin)
+
+# Plot
+# IBS-D:
+ibsd.dm <- abundant.nonviral.species.data.100.5 %>% 
+  filter(Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1116" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1128" |  Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1212" |  Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1137" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1016" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1155" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1223" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1320" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1327" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1363" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1374" | Species == "not classified sp. cat1344" | Species == "not classified sp. cat1431" | Species == "not classified sp. cat1867" | Species == "not classified sp. cat1905" | Species == "not classified sp. cat2120" | Species == "not classified sp. cat2636" | Species == "not classified sp. cat2740" | Species == "not classified sp. cat2979" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1044" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1054" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1059"  | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1075"  | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1078"  | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1142"  | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1233"  | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1265"  |  Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1328"  | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1336"  | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1356" | Species == "not classified sp. cat2509" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1018" | Species == "not classified sp. cat1538" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1134") %>%
+    group_by(Species) %>%
+    mutate(scaled_abundance_median_plus = Abundance + 1) %>%
+    mutate(scaled_abundance_median = Abundance) %>%
+    droplevels()
+
+ibsd.dm$Species <- gsub("Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. ", "", ibsd.dm$Species)
+ibsd.dm$Kingdom <- gsub("_", " ", ibsd.dm$Kingdom)
+
+ibsd.dm.p1 <- ggboxplot(ibsd.dm, x = "cohort", y = "scaled_abundance_median_plus", outlier.shape = NA, width = 0.4) +
+  geom_jitter(size = 1.2, alpha = 0.7, width = 0.1) +
+  facet_wrap(~ swr20(Species), ncol=7)  +
+  scale_y_log10(labels = scales::scientific) +
+  theme(legend.position="none") +
+  theme_bw(base_size = 9) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(y = "Abundance (log10)", x = "Cohort") +
+  theme(strip.text.y = element_text(size = 8))
+ibsd.dm.p1
+
+# Fig S2 Dark matter boxplots
+ibsd.dm.p1.grid <- plot_grid(ibsd.dm.p1)
+
+ggsave(ibsd.dm.p1, filename = 'FigS2p3_dark_matter.pdf', width = 8, height = 6, dpi = 600)
+
+# Healthy + 1 IBS-C: 
+hc.dm <- abundant.nonviral.species.data.100.5 %>% 
+  filter(Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1034" | 
+Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1264" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1323" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1035" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1079" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1157" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1192" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1274" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1311" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1343" | Species == "not classified sp. cat2079" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1215" | Species == "not classified sp. cat1146" |  Species == "Unclassified virus sp. ctkJE429")  %>%
+    group_by(Species) %>%
+    mutate(scaled_abundance_median_plus = Abundance + 1) %>%
+    mutate(scaled_abundance_median = Abundance) %>%
+    droplevels()
+
+hc.dm$Species <- gsub("Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. ", "", hc.dm$Species)
+hc.dm$Kingdom <- gsub("_", " ", hc.dm$Kingdom)
+
+hc.dm.p1 <- ggboxplot(hc.dm, x = "cohort", y = "scaled_abundance_median_plus", outlier.shape = NA, width = 0.4) +
+  geom_jitter(size = 1.2, alpha = 0.7, width = 0.1) +
+  facet_wrap(~ swr20(Species), nrow=2)  +
+  scale_y_log10(labels = scales::scientific) +
+  theme(legend.position="none") +
+  theme_bw(base_size = 9) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(y = "Abundance (log10)", x = "Cohort") +
+  theme(strip.text.y = element_text(size = 8))
+hc.dm.p1
+
+# Fig S2 Dark matter boxplots
+hc.dm.p1.grid <- plot_grid(hc.dm.p1, labels = 'A')
+
+ggsave(hc.dm.p1, filename = 'FigS2p1_dark_matter.pdf', width = 8, height = 3, dpi = 600)
+
+# 8 IBS-C: 
+c.dm2 <- abundant.nonviral.species.data.100.5 %>% 
+  filter(Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1175" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1279" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1196" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1285" | Species == "Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. cat1293" | Species == "not classified sp. cat1134" | Species == "not classified sp. cat2879" )  %>%
+    group_by(Species) %>%
+    mutate(scaled_abundance_median_plus = Abundance + 1) %>%
+    mutate(scaled_abundance_median = Abundance) %>%
+    droplevels()
+
+c.dm2$Species <- gsub("Kingdom_undefined_Phylum_undefined_Class_undefined_Order_undefined_Family_undefined_Genus_dark_matter sp. ", "", c.dm2$Species)
+c.dm2$Kingdom <- gsub("_", " ", c.dm2$Kingdom)
+
+c.dm2.p1 <- ggboxplot(c.dm2, x = "cohort", y = "scaled_abundance_median_plus", outlier.shape = NA, width = 0.4) +
+  geom_jitter(size = 1.2, alpha = 0.7, width = 0.1) +
+  facet_wrap(~ swr20(Species), nrow=1)  +
+  scale_y_log10(labels = scales::scientific) +
+  theme(legend.position="none") +
+  theme_bw(base_size = 9) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(y = "Abundance (log10)", x = "Cohort") +
+  theme(strip.text.y = element_text(size = 8))
+c.dm2.p1
+
+# Fig S2 Dark matter boxplots
+c.dm2.p1.grid <- plot_grid(c.dm2.p1)
+
+ggsave(c.dm2.p1, filename = 'FigS2p2_dark_matter.pdf', width = 8, height = 1.5, dpi = 600)
+```
+
+# Figs 5A, 6B Eukaryotic virus significance and boxplots
+```{r eukaryotic-virus-significance-and-boxplots}
+# Bromoviridae
+cff.bromo <- ps0.merged_contig.m %>%
+    filter(Family == "Bromoviridae") %>%
+    droplevels()  %>%
+    group_by(contig) %>%
+    mutate(isolate = ifelse(contig == "contig_1499", "Blueberry shock virus", "Blueberry shock virus")) 
+
+# Caliciviridae
+cff.calici <- ps0.merged_contig.m %>%
+    filter(Family == "Caliciviridae") %>%
+    droplevels()  %>%
+    group_by(contig) %>%
+    mutate(isolate = ifelse(contig == "contig_1168", "Norovirus GII Cambria0299", "Norovirus GII Washington0526")) 
+
+# Potyviridae
+cff.poty <- ps0.merged_contig.m %>%
+    filter(Family == "Potyviridae") %>%
+    droplevels() %>%
+    group_by(contig)%>%
+    mutate(isolate = if_else(contig == "contig_1706", "Squash vein yellowing virus", "Squash vein yellowing virus"))
+
+# Virgaviridae
+cff.virga <- ps0.merged_contig.m %>%
+    filter(Family == "Virgaviridae") %>%
+    droplevels() %>%
+    group_by(contig)%>%
+    mutate(isolate = ifelse(contig == "contig_2403", "Tomato mosaic virus",
+                           ifelse(contig == "contig_2426", "Hot pepper mosaic virus isolate Oxampampa4",
+                           ifelse(contig == "contig_184", "Tomato mottle mosaic virus isolate 10-100", 
+                           ifelse(contig == "contig_1135", "Cucumber green mottle mosaic virus",
+                           ifelse(contig == "contig_1413", "Cucumber green mottle mosaic virus isolate CG015",
+                           ifelse(contig == "contig_626", "Tropical soda apple mosaic virus",
+                           ifelse(contig == "contig_457", "Tropical soda apple mosaic virus",
+                           ifelse(contig == "contig_2047", "Tobacco mild green mosaic virus strain U2",
+                           ifelse(contig == "contig_2107", "Cucumber green mottle mosaic virus isolate CG015", "Pepper mild mottle virus"))))))))))
+
+# Bind all 4 families and collapse by isolate
+cff.all <- rbind(cff.bromo, cff.calici, cff.poty, cff.virga)
+cff.all.min <- cff.all[,c(1,3:10,39:45,48)] # OTU, Abundance - BMI, Kingdom - Species, isolate
+cff.all.restore <- cff.all[,c(4:8,11:12)] # participantID, cohort_orig, cohort2, cohort, disease2, gender, race
+
+cff.all.iso <- cff.all.min %>%
+  select(-OTU) %>%
+  unite("lineage", c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus"), sep = ";", remove = FALSE) %>%
+  group_by(lineage, isolate, participantID) %>%
+  summarise_if(is.numeric, funs(sum(as.numeric(.)))) %>%
+  separate("lineage", c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus"), sep = ";") %>%
+  ungroup()
+
+cff.all.isolate <- merge(cff.all.iso, cff.all.restore, by = "participantID") %>%
+    unique() %>%
+    group_by(isolate) %>%
+    mutate(scaled_abundance_median_plus = Abundance + 1) %>%
+    mutate(scaled_abundance_median = Abundance) %>%
+    droplevels() 
+
+# Evaluate for statistical significance
+# Kruskal-wallis test - Healthy, IBS-C, IBS-D
+cff.all.kruskal <- cff.all.isolate %>%
+  kruskal_test(scaled_abundance_median ~ cohort) %>%
+  add_significance()
+cff.all.kruskal.fin <- subset(cff.all.kruskal, p.signif !="ns")
+
+#  Species                  .y.                     group1  group2    n1    n2 statistic     p p.adj p.adj.signif
+# 1 Cucumber green mottle mosaic virus scaled_abundance_median    50      9.29     2 0.00960   Kruskal-Wallis **
+# 2 Norovirus GII Cambria0299          scaled_abundance_median    50     16.5      2 0.000268  Kruskal-Wallis ***
+# 3 Squash vein yellowing virus        scaled_abundance_median    50     11.4      2 0.00341   Kruskal-Wallis **
+# 4 Tomato mosaic virus                scaled_abundance_median    50     20.2      2 0.0000404 Kruskal-Wallis ****
+
+# Dunn's post test
+stat.test.cff.all <- cff.all.isolate %>%
+  dunn_test(scaled_abundance_median ~ cohort, p.adjust.method = "bonferroni") %>%
+  add_significance() %>%
+  arrange(p.adj.signif)
+stat.test.cff.all.fin <- subset(stat.test.cff.all, p.adj.signif !="ns")
+
+#  Species                  .y.                     group1  group2    n1    n2 statistic     p p.adj p.adj.signif
+# 1 Cucumber green mottle mosaic virus scaled_abundance_median Healthy IBS-C     16    17      2.84 0.00449   0.0135    *
+# 2 Squash vein yellowing virus        scaled_abundance_median Healthy IBS-C     16    17     -2.70 0.00696   0.0209    *
+# 3 Norovirus GII Cambria0299          scaled_abundance_median Healthy IBS-D     16    17     -3.31 0.000920  0.00276   **
+# 4 Squash vein yellowing virus        scaled_abundance_median Healthy IBS-D     16    17     -3.12 0.00180   0.00540   **
+# 5 Tomato mosaic virus                scaled_abundance_median Healthy IBS-D     16    17     -3.35 0.000798  0.00239   **
+# 6 Norovirus GII Cambria0299          scaled_abundance_median Healthy IBS-C     16    17     -3.71 0.000206  0.000617  ***
+# 7 Tomato mosaic virus                scaled_abundance_median IBS-C   IBS-D     17    17     -4.26 0.0000204 0.0000611 ****
+
+# Plot significant isolates
+calici.sig <- cff.all.isolate  %>%
+    filter(isolate == "Norovirus GII Cambria0299") %>%
+    droplevels() 
+
+p.calici <- ggboxplot(calici.sig, x = "cohort", y = "scaled_abundance_median_plus", outlier.shape = NA, width = 0.4) +
+  geom_jitter(size = 1.2, alpha = 0.7, width = 0.1) +
+  facet_grid(Family ~ isolate) +
+  scale_y_log10(labels = scales::scientific) +
+  theme(legend.position="none") +
+  theme_bw(base_size = 9) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(y = "Abundance (log10)", x = "Cohort") +
+  theme(strip.text.y = element_text(size = 8))
+p.calici
+
+# Fig 5A Calici contig boxplots YAH
+p.calici.grid <- plot_grid(p.calici, labels = 'A')
+
+ggsave(p.calici.grid, filename = 'Fig5A_calici_sig_contig.pdf', width = 3, height = 3, dpi = 600)
+
+# Potyviridae
+poty.sig <- cff.all.isolate  %>%
+    filter(isolate == "Squash vein yellowing virus") %>%
+    droplevels()
+
+p.poty <- ggboxplot(poty.sig, x = "cohort", y = "scaled_abundance_median_plus", outlier.shape = NA, width = 0.4) +
+  geom_jitter(size = 1.2, alpha = 0.7, width = 0.1) +
+  facet_grid(Family ~ swr20(isolate)) +
+  scale_y_log10(labels = scales::scientific) +
+  theme(legend.position="none") +
+  theme_bw(base_size = 9) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(y = "Abundance (log10)", x = "Cohort") +
+  theme(strip.text.y = element_text(size = 8))
+p.poty
+
+# Virgaviridae
+virga.sig <- cff.all.isolate  %>%
+    filter(isolate == "Cucumber green mottle mosaic virus" | isolate == "Tomato mosaic virus") %>% 
+    droplevels()
+
+p.virga <- ggboxplot(virga.sig, x = "cohort", y = "scaled_abundance_median_plus", outlier.shape = NA, width = 0.4) +
+  geom_jitter(size = 1.2, alpha = 0.7, width = 0.1) +
+  facet_grid(Family ~ swr20(isolate)) +
+  scale_y_log10(labels = scales::scientific) +
+  theme(legend.position="none") +
+  theme_bw(base_size = 9) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(y = "Abundance (log10)", x = "Cohort") +
+  theme(strip.text.y = element_text(size = 8))
+p.virga
+
+# Combine plant viruses into one figure
+plant.sig <- rbind(poty.sig, virga.sig)
+
+p.plant <- ggboxplot(plant.sig, x = "cohort", y = "scaled_abundance_median_plus", outlier.shape = NA, width = 0.4, color = "Family") +
+  geom_jitter(size = 1.2, alpha = 0.7, width = 0.1) +
+  facet_wrap(~swr20(isolate)) +
+  scale_y_log10(labels = scales::scientific) +
+  theme(legend.position="none") +
+  theme_bw(base_size = 9) +
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  labs(y = "Abundance (log10)", x = "Cohort") +
+  theme(strip.text.y = element_text(size = 8))
+p.plant
+
+# Fig 6B Plant virus contig boxplots
+p.plant.contig.grid <- plot_grid(p.plant, labels = 'B')
+
+ggsave(p.plant.contig.grid, filename = 'Fig6B_plant_contig.pdf', width = 7.5, height = 2.5, dpi = 600)
+```
+
+# Table S2 Alpha and Beta Diversity for eukaryotic plant viruses
+```{r plant-virus-diversity}
+# Alpha Diversity
+# Subset the plant virus contigs
+plant.diversity.round <-ps0.merged_contig.round %>%
+  subset_taxa(
+    (Family == "Bromoviridae" | Family == "Partitiviridae" | Family == "Potyviridae" | Family == "Virgaviridae") 
+)
+plant.diversity.round
+# 20 taxa (contigs)
+
+# Eukaryotic virus Contigs
+euk.contig.alpha.merge <- estimate_richness(plant.diversity.round, measures = c("Observed", "Shannon", "Simpson"))
+euk.contig.evenness.merge <- microbiome::evenness(plant.diversity.round, index="pielou")
+sd.merge.euk.contig <- as.data.frame(sample_data(plant.diversity.round)) 
+ps.rich.euk.contig.merge <- cbind(sd.merge.euk.contig, euk.contig.alpha.merge, euk.contig.evenness.merge) 
+# Observed
+# Kruskal-Wallis test
+ps.rich.euk.contig.merge.kruskal <- ps.rich.euk.contig.merge %>%
+  kruskal_test(Observed ~ cohort) %>%
+  add_significance()
+ps.rich.euk.contig.merge.kruskal
+#  .y.          n statistic    df     p method         p.signif
+#1 Observed    50      1.71     2 0.425 Kruskal-Wallis ns        
+
+# Shannon
+# Kruskal-wallis test
+ps.shannon.euk.contig.all.merge.kruskal <- ps.rich.euk.contig.merge %>%
+  kruskal_test(Shannon ~ cohort) %>%
+  add_significance()
+ps.shannon.euk.contig.all.merge.kruskal
+#  .y.          n statistic    df     p method         p.signif
+# 1 Shannon    50     0.336     2 0.845 Kruskal-Wallis ns       
+
+# Evenness
+# Kruskal-wallis test
+ps.evenness.euk.contig.all.merge.kruskal <- ps.rich.euk.contig.merge %>%
+  kruskal_test(pielou ~ cohort) %>%
+  add_significance()
+ps.evenness.euk.contig.all.merge.kruskal
+#  .y.          n statistic    df     p method         p.signif
+#1 pielou    50      2.41     2   0.3 Kruskal-Wallis ns       
+
+# Beta Diversity
+# Bray-Curtis
+# Subset the plant virus contigs
+plant.diversity <- ps0.merged_contig %>%
+  subset_taxa(
+    (Family == "Bromoviridae" | Family == "Partitiviridae" | Family == "Potyviridae" | Family == "Virgaviridae") 
+)
+plant.diversity
+# 20 contigs 
+
+# Check if any taxa have no reads:
+rmtaxa = taxa_names(plant.diversity)[taxa_sums(plant.diversity) <= 0]
+# all taxa have counts
+
+# Remove samples with no reads
+plant.diversity = prune_samples(sample_sums(plant.diversity)> 0, plant.diversity)
+plant.diversity
+# 20 taxa and 49 samples WAS 20 taxa and 50 samples
+
+ps.euk.contig.bc.m <- ordinate(plant.diversity, method = "PCoA", distance = "bray")
+
+my_euk.contig_tax.m <- tax_table(plant.diversity)
+ps.euk.contig_tax.m_otu_table <- as.data.frame(t(otu_table(plant.diversity)))
+df.ord.euk.contig.m <- as_tibble(sample_data(plant.diversity)) %>% 
+  mutate(tmp = participantID) %>%
+  column_to_rownames(var = "tmp")
+
+pairwise.adonis2(ps.euk.contig_tax.m_otu_table~cohort, data = df.ord.euk.contig.m, method="bray", p.adjust.m ='bonferroni')
+# IBS-D_vs_Healthy
+#           Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)  
+# cohort     1    0.7831 0.78311  1.8175 0.05712  0.014 *
+# Residuals 30   12.9257 0.43086         0.94288         
+# Total     31   13.7088                 1.00000 
+
+# IBS-D_vs_IBS-C
+#           Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)  
+# cohort     1    0.6965 0.69649  1.6024 0.04915  0.027 *
+# Residuals 31   13.4745 0.43466         0.95085         
+# Total     32   14.1710                 1.00000
+
+# Healthy_vs_IBS-C
+#           Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)  
+# cohort     1    0.4214 0.42140  0.9922 0.03101  0.452
+# Residuals 31   13.1662 0.42472         0.96899       
+# Total     32   13.5876                 1.00000  
+```
+
+# Fig 2B: contig length histogram
+```{r annotated-contig-length}
+max(contig_info$Length)
+# [1] 60791
+
+annotated.contig <- contig_info %>%
+  filter(Kingdom != "Kingdom_undefined" & Kingdom != "not classified") %>%
+  droplevels()
+
+dim(contig_info)
+# [1] 2421   23
+
+dim(annotated.contig)
+# [1] 1877   23 
+
+contig.hist <- contig_info %>%
+  mutate(Annotated = ifelse(Kingdom == "Kingdom_undefined", "no",
+                            ifelse(Kingdom == "not classified", "no", "yes")))
+
+mu <- ddply(contig.hist, "Annotated", summarise, grp.mean=mean(Length))
+
+all.c <- ggplot(contig.hist, aes(x=Length, color=Annotated, fill=Annotated)) + 
+  scale_color_grey() +
+  scale_fill_grey() +
+  theme_classic() +
+  theme(axis.text.x = element_text(size = 10), axis.text.y = element_text(size = 10)) + 
+  geom_histogram(binwidth=1000, position="identity", alpha=0.5) + 
+  labs(x="Contig length (nucleotides)", y = "Number of contigs") +
+  geom_vline(data=mu, aes(xintercept=grp.mean, color=Annotated),
+           linetype="dashed")
+all.c
+
+# Fig 2B All contig length
+p.all.c.grid <- plot_grid(all.c, labels = 'B')
+
+ggsave(p.all.c.grid, filename = 'Fig2B_all_contig_hist.pdf', width = 5, height = 3.5, dpi = 600)
+
+# Fig 2B inset
+contig.hist.5000 <- contig.hist %>%
+  filter(Length <= 5000) %>%
+  distinct()
+
+mu.5000 <- ddply(contig.hist.5000, "Annotated", summarise, grp.mean=mean(Length))
+
+all.c.5000 <- ggplot(contig.hist.5000, aes(x=Length, color=Annotated, fill=Annotated)) + 
+  scale_color_grey() +
+  scale_fill_grey() +
+  theme_classic() +
+  theme(axis.text.x = element_text(size = 14), axis.text.y = element_text(size = 14), axis.title=element_text(size=14),legend.title=element_text(size=14), legend.text = element_text(size = 14)) + 
+  geom_histogram(binwidth=1000, position="identity", alpha=0.5) + 
+  labs(x="Contig length (nucleotides)", y = "Number of contigs") +
+  geom_vline(data=mu.5000, aes(xintercept=grp.mean, color=Annotated),
+           linetype="dashed")
+all.c.5000
+
+# Fig 2B inset
+all.c.5000.grid <- plot_grid(all.c.5000)
+
+ggsave(all.c.5000.grid, filename = 'Fig2B_all_contig_hist_5000_inset.pdf', width = 5, height = 3.5, dpi = 600)
+```
+
+# Fig 3B: Phage heatmap; Fig 2C data
+```{r figure-2-phage-merged-heatmap-bar-plot}
+# Fig 2C data:
+# Kingdoms: YAH - 
+kingdom.count <- table(ps0.merged_contig.m$Kingdom)
+kingdom.count <- data.table(kingdom.count) %>%
+  rename (Kingdom = V1) %>%
+  mutate(count = (N/50))
+
+dark.matter <- data.frame("Dark matter", 27200, 544) 
+names(dark.matter) <- c("Kingdom", "N", "count")  
+kingdom.count.fin <- kingdom.count[c(1:3,6)]
+kingdom.count <- rbind(kingdom.count.fin, dark.matter)
+kingdom.count.fin <- kingdom.count[,c(1,3)]
+
+#        Kingdom count
+# 1:     Archaea     3
+# 2:    Bacteria  1199
+# 3:   Eukaryota     8
+# 4:     Viruses   667
+# 5: Dark matter   544
+
+# NOTE: Used this data to create a decision tree in keynote
+
+# Heatmap
+# Keep phage only
+ps.phage.merged_contig.baltimore <- ps0.merged_contig.sp.m %>%
+  filter(Kingdom == "Viruses") %>%
+  filter(Phylum == "Hofneiviricota" | Phylum == "Phixviricota" | Phylum == "Uroviricota") %>%
+  droplevels()
+
+ps.fam.ts.phage.merged <- ps.phage.merged_contig.baltimore %>%
+  group_by(cohort, Baltimore, Family) %>%
+  summarise(mean.ts = mean(Abundance)) %>%
+  arrange(Family)
+
+# Replace _ with spaces in Family names
+ps.fam.ts.phage.merged$Family  <- as.character(ps.fam.ts.phage.merged$Family) %>%
+  str_replace_all("_", " ")
+ps.fam.ts.phage.merged$Family <- as.factor(ps.fam.ts.phage.merged$Family)
+
+# Sort Families by mean.ts
+levels(ps.fam.ts.phage.merged$Family)
+p.sort <- sort(tapply(ps.fam.ts.phage.merged$mean.ts, ps.fam.ts.phage.merged$Family, sum), decreasing=FALSE)
+ps.fam.ts.phage.merged$Family <- factor(ps.fam.ts.phage.merged$Family, levels = names(p.sort)) 
+levels(ps.fam.ts.phage.merged$Family)
+
+# Order Baltimore by number of taxa
+levels(ps.fam.ts.phage.merged$Baltimore)
+ps.fam.ts.phage.merged$Baltimore <- factor(ps.fam.ts.phage.merged$Baltimore, levels=c("dsDNA","ssDNA"))
+levels(ps.fam.ts.phage.merged$Baltimore)
+
+heat.phage.merged <- ggplot(ps.fam.ts.phage.merged, aes(cohort, Family, fill= log10(mean.ts))) + 
+  facet_grid(Baltimore ~ .,  scales="free_y", space="free") +
+  theme(strip.text.y = element_text(angle=360, size =6)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "black") +
+  theme(plot.title = element_text(size=8, face="bold")) +
+  labs(fill = "log10 Scaled\nabundance") + 
+  theme(legend.position="right")  +
+  theme(text = element_text(size=8)) +
+  ylab("Family") +
+  xlab("Cohort") +
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=8,face="bold")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(plot.title = element_text(hjust = 1.15, vjust=2.12))
+
+heat.phage.merged
+
+# Fig 3B Phage heatmap
+heat.phage.merged.grid <- plot_grid(heat.phage.merged, labels = 'B')
+
+ggsave(heat.phage.merged.grid, filename = 'Fig3B_phage_heat_merged.pdf', width = 4, height = 4.5, dpi = 600)
+```
+
+# Fig 6A Heatmap - Eukaryotic viruses 
+```{r figure-6A-euk-merged-heatmap}
+# Keep Eukaryotic plant viruses only
+# Partitiviridae
+plant.parti <- ps0.merged_contig.m %>%
+    filter(Family == "Partitiviridae") %>%
+    droplevels() %>%
+    group_by(contig)%>%
+    mutate(isolate = if_else(contig == "contig_1067", "Cannabis cryptic virus", "Cannabis cryptic virus"))
+
+# Bind all 4 families and collapse by isolate
+plant.all <- rbind(cff.bromo, plant.parti, cff.poty, cff.virga)
+plant.all.min <- plant.all[,c(1,3:10,39:46,48)] # OTU, Abundance - BMI, Kingdom - Species, Baltimore isolate
+plant.all.restore <- plant.all[,c(4:8,11:12)] # participantID, cohort_orig, cohort2, cohort, disease2, gender, race, Baltimore, Baltimore Group
+
+plant.all.iso <- plant.all.min %>%
+  select(-OTU) %>%
+  unite("lineage", c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus"), sep = ";", remove = FALSE) %>%
+  group_by(lineage, isolate, participantID, Baltimore) %>%
+  summarise_if(is.numeric, funs(sum(as.numeric(.)))) %>%
+  separate("lineage", c("Kingdom", "Phylum", "Class", "Order", "Family", "Genus"), sep = ";") %>%
+  ungroup()
+
+plant.all.isolate <- merge(plant.all.iso, plant.all.restore, by = "participantID") %>%
+    unique() %>%
+    group_by(isolate) %>%
+    mutate(scaled_abundance_median_plus = Abundance + 1) %>%
+    mutate(scaled_abundance_median = Abundance) %>%
+    droplevels() 
+
+ps.fam.ts.euk.merged <- plant.all.isolate %>%
+  group_by(cohort, Baltimore, Family) %>%
+  summarise(mean.ts = mean(Abundance)) %>%
+  arrange(Family)
+
+# Replace _ with spaces in Family names
+ps.fam.ts.euk.merged$Family  <- as.character(ps.fam.ts.euk.merged$Family) %>%
+  str_replace_all("_", " ")
+ps.fam.ts.euk.merged$Family <- as.factor(ps.fam.ts.euk.merged$Family)
+
+# Sort Families by mean.ts
+levels(ps.fam.ts.euk.merged$Family)
+p.sort2 <- sort(tapply(ps.fam.ts.euk.merged$mean.ts, ps.fam.ts.euk.merged$Family, sum), decreasing=FALSE)
+ps.fam.ts.euk.merged$Family <- factor(ps.fam.ts.euk.merged$Family, levels = names(p.sort2)) 
+levels(ps.fam.ts.euk.merged$Family)
+
+# Order Baltimore by number of taxa
+levels(ps.fam.ts.euk.merged$Baltimore)
+ps.fam.ts.euk.merged$Baltimore <- factor(ps.fam.ts.euk.merged$Baltimore, levels=c("ssRNA(+)","dsRNA"))
+levels(ps.fam.ts.euk.merged$Baltimore)
+
+heat.euk.merged <- ggplot(ps.fam.ts.euk.merged, aes(cohort, Family, fill= log10(mean.ts))) + 
+  facet_grid(Baltimore ~ .,  scales="free_y", space="free") +
+  theme(strip.text.y = element_text(angle=360, size =6)) +
+  geom_tile() +
+  scale_fill_gradient(low = "white", high = "black") +
+  theme(plot.title = element_text(size=8, face="bold")) +
+  labs(fill = "log10 Scaled\nabundance") + 
+  theme(legend.position="right")  +
+  theme(text = element_text(size=8)) +
+  ylab("Family") +
+  xlab("Cohort") +
+  theme(axis.text=element_text(size=8),
+        axis.title=element_text(size=8,face="bold")) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(plot.title = element_text(hjust = 1.15, vjust=2.12))
+heat.euk.merged
+
+# Fig 6A euk heatmap
+heat.euk.merged.grid <- plot_grid(heat.euk.merged, labels = 'A')
+
+ggsave(heat.euk.merged.grid, filename = 'Fig6A_plant_heat_merged.pdf', width = 4, height = 4.5, dpi = 600)
+```
+
+# Fig 3A, text: Phage (alpha and beta diversity) 
+```{r phage-alpha-beta-diversity}
+# Alpha Diversity
+# Keep phage only
+ps0.merged_contig.sp.round # 1552 taxa x 50 samples
+ps.m.round.sp.phage <- ps0.merged_contig.sp.round %>%
+  subset_taxa(
+    Kingdom == "Viruses" &
+      Phylum == "Hofneiviricota" | Phylum == "Phixviricota" | Phylum == "Uroviricota"
+  )
+ps.m.round.sp.phage # 113 taxa
+
+# Species
+species.alpha.merge.phage <- estimate_richness(ps0.merged_contig.sp.round, measures = c("Observed", "Shannon", "Simpson"))
+species.evenness.merge.phage <- microbiome::evenness(ps0.merged_contig.sp.round, index="pielou")
+sd.merge.phage <- as.data.frame(sample_data(ps0.merged_contig.sp.round)) 
+ps.rich.sp.phage.merge <- cbind(sd.merge.phage, species.alpha.merge.phage, species.evenness.merge.phage) 
+
+# Observed
+# Kruskal-wallis test
+ps.rich.sp.phage.merge.kruskal <- ps.rich.sp.phage.merge %>%
+  kruskal_test(Observed ~ cohort) %>%
+  add_significance()
+ps.rich.sp.phage.merge.kruskal
+#  .y.          n statistic    df     p method         p.signif
+#1 Observed    50      2.12     2 0.346 Kruskal-Wallis ns       
+
+# Shannon
+# Kruskal-wallis test
+ps.shannon.contig.all.merge.kruskal <- ps.rich.sp.phage.merge %>%
+  kruskal_test(Shannon ~ cohort) %>%
+  add_significance()
+ps.shannon.contig.all.merge.kruskal
+#  .y.          n statistic    df     p method         p.signif
+#1 Shannon    50      2.27     2 0.322 Kruskal-Wallis ns      
+
+# Pielou Evenness
+# Kruskal-wallis test
+ps.evenness.contig.all.merge.kruskal <- ps.rich.sp.phage.merge %>%
+  kruskal_test(pielou ~ cohort) %>%
+  add_significance()
+ps.evenness.contig.all.merge.kruskal
+#  .y.          n statistic    df     p method         p.signif
+#1 pielou    50      2.64     2 0.267 Kruskal-Wallis ns    
+
+# Beta Diversity - Bray-Curtis
+# Keep phage only
+ps0.merged_contig.sp # 1552 taxa x 50
+ps.sp.phage.merged <- ps0.merged_contig.sp %>%
+  subset_taxa(
+    Kingdom == "Viruses" &
+      Phylum == "Hofneiviricota" | Phylum == "Phixviricota" | Phylum == "Uroviricota"
+  )
+ps.sp.phage.merged # 113 taxa
+
+ps.phage.bc.m <- ordinate(ps.sp.phage.merged, method = "PCoA", distance = "bray")
+
+my_phage_tax.m <- tax_table(ps.sp.phage.merged)
+ps.phage_tax.m_otu_table <- as.data.frame(t(otu_table(ps.sp.phage.merged)))
+df.ord.phage.m <- as_tibble(sample_data(ps.sp.phage.merged)) %>% 
+  mutate(tmp = participantID) %>%
+  column_to_rownames(var = "tmp")
+
+pairwise.adonis2(ps.phage_tax.m_otu_table~cohort, data = df.ord.phage.m, method="bray", p.adjust.m ='bonferroni')
+# IBS-D_vs_Healthy
+#           Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)
+# cohort     1    0.3989 0.39891  1.1193 0.03485  0.333
+# Residuals 31   11.0484 0.35640         0.96515       
+# Total     32   11.4474                 1.00000  
+
+# IBS-D_vs_IBS-C
+#           Df SumsOfSqs MeanSqs F.Model      R2 Pr(>F)
+# cohort     1    0.1415 0.14153 0.39942 0.01233  0.983
+# Residuals 32   11.3389 0.35434         0.98767       
+# Total     33   11.4804                 1.00000  
+
+# Healthy_vs_IBS-C
+#           Df SumsOfSqs MeanSqs F.Model     R2 Pr(>F)
+# cohort     1    0.4133 0.41325  1.1711 0.0364  0.299
+# Residuals 31   10.9394 0.35288         0.9636       
+# Total     32   11.3526                 1.0000   
+
+# Plot
+p.ord.bc.phage.m2 <- plot_ordination(ps.sp.phage.merged, ordination = ps.phage.bc.m, color = "cohort") +
+  theme(plot.title = element_text(size=8, face="bold", hjust = -0.25)) +
+  theme(text = element_text(size = 8))  + 
+  scale_color_manual(values=c("black", "lightblue3", "peru" ), name = "Cohort") 
+
+p.ord.bc.phage.m2.fin <- p.ord.bc.phage.m2 +
+  stat_ellipse(type = "norm", linetype = 2, segments = 1) +
+  stat_ellipse(type = "t") +
+  theme_bw()
+
+# Fig 3A Phage Beta Diversity
+p.phage.beta.grid <- plot_grid(p.ord.bc.phage.m2.fin, labels = 'A')
+
+ggsave(p.phage.beta.grid, filename = 'Fig3A_phage_beta.pdf', width = 5, height = 3.5, dpi = 600)
+```
+
+# Fig 1A Descriptive Statistics
+```{r descriptive-statistics}
+# Per Ruben, make table of descriptive statistics and between cohort comparisons of these (BMI, age)
+# From: https://www.r-bloggers.com/2016/02/table-1-and-the-characteristics-of-study-population/
+
+# Create a variable list which we want in Table
+listVars <- c("age", "BMI") #, "cohort"
+
+# Define categorical variables
+catVars <- c( "cohort")
+
+ps0.merged_contig.m.meta <- ps0.merged_contig.m[,c(4,7,9:10)] %>% # participantID, cohort, age, BMI
+  distinct()
+
+# Total Population
+table1 <- CreateTableOne(vars = listVars, data = ps0.merged_contig.m.meta, factorVars = catVars)
+table1
+
+  #                 Overall       
+  # n                  50        
+  # age (mean (SD))  39.62 (13.63)
+  # BMI (mean (SD))  27.86 (7.84) 
+
+table2 <- CreateTableOne(listVars, ps0.merged_contig.m.meta, catVars, strata = c("cohort"))
+table2
+
+  #                Stratified by cohort
+  #                 Healthy        IBS-C          IBS-D          p      test
+  #   n                  16            17            17                    
+  # age (mean (SD)) 37.44 (12.14) 43.12 (15.48) 38.18 (13.51)  0.439     
+  # BMI (mean (SD)) 27.52 (6.16)  27.53 (9.53)  28.52 (8.06)   0.918       
+
+print(table2, nonnormal = c("age", "BMI"), smd = TRUE)
+  #                   Stratified by cohort
+  #                     Healthy              IBS-C                IBS-D                p      test    SMD
+  # n                     16                   17                   17
+  # age (median [IQR]) 33.50 [26.75, 49.75] 44.00 [27.00, 54.00] 35.00 [28.00, 53.00]  0.596 nonnorm  0.269
+  # BMI (median [IQR]) 25.93 [23.56, 27.95] 24.92 [21.60, 29.04] 26.50 [22.10, 33.20]  0.756 nonnorm  0.085
+```

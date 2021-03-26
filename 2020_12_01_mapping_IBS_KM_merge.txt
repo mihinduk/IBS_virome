@@ -1,0 +1,51 @@
+"participantID"	"cohort_orig"	"cohort2"	"cohort"	"disease2"	"age"	"BMI"	"gender"	"race"	"birth"	"fed_as_infant"	"HADS_A"	"HADS_D"	"fatigue"	"psych_health"	"heartburn_month"	"diet_soda_daily"	"regular_soda_daily"	"weekly_strenous_excercise"	"weekly_moderate_excercise"	"weekly_mild_excercise"	"alcohol_last_year"	"X100_cigarettes_lifetime"	"cigarettes_per_day"	"study_id"	"L1_Grain_Product"	"L1_Meat_Poultry_Fish_and_Mixtures"	"L1_Milk_and_Milk_Products"	"L1_Sugars_Sweets_and_Beverages"	"L1_Vegetables"	"L1_Fruits"	"L1_Dry_Beans_Peas_Other_Legumes_Nuts_and_Seeds"	"L1_Eggs"	"L1_Fats_Oils_and_Salad_Dressings"
+4	"C"	"CD"	"IBS-C"	"IBS"	54	28.91	"female"	"white"	"vaginal"	"breast"	1	5	2	"excellent"	"no"	1	1	1	8	3	"once_per_month"	"unknown"	NA	10007542	1057.7	563.32	87.21	235.18	293.62	115.9	179.16	150.1	12.23
+7	"C"	"CD"	"IBS-C"	"IBS"	32	29.04	"male"	"white"	"vaginal"	"both"	7	5	2	"excellent"	"yes"	1	1	1	2	7	"4_5_per_week"	"no"	NA	10007545	1213.35	427.37	345.15	217.61	167.13	165.95	157.85	0	0
+8	"C"	"CD"	"IBS-C"	"IBS"	52	25.23	"female"	"white"	"vaginal"	"both"	5	1	0	"very good"	"no"	2	1	0	4	7	"2_4_per_month"	"no"	NA	10007546	826.62	405.28	769.24	177.91	307.7	0	94.04	15.75	97.88
+9	"C"	"CD"	"IBS-C"	"IBS"	63	58.93	"female"	"white"	"vaginal"	"bottle"	5	5	8	"fair"	"yes"	1	1	0	0	2	"2_4_per_month"	"no"	NA	10007547	1441.88	265.7	116.86	362.72	260.46	106.01	91.82	0	48.92
+10	"C"	"CD"	"IBS-C"	"IBS"	52	19.38	"female"	"white"	"vaginal"	"bottle"	0	0	0	"very good"	"no"	1	1	6	6	1	"once_per_month"	"no"	NA	10007548	967.47	170.15	694.53	275.02	107.71	319.54	135.23	0	24.72
+17	"C"	"CD"	"IBS-C"	"IBS"	62	20.4	"female"	"white"	"vaginal"	"breast"	10	2	1	"good"	"no"	1	1	4	2	1	"never"	"unknown"	NA	10007555	616.74	349.4	332.51	362.43	196.94	396.32	347.51	15.75	76.79
+18	"C"	"CD"	"IBS-C"	"IBS"	20	27.31	"female"	"white"	"vaginal"	"unknown"	11	7	3	"very good"	"yes"	1	2	1	1	1	"never"	"no"	NA	10007556	1710.56	258.48	143.43	294.43	0.38	18.49	52.72	191.91	23.96
+20	"C"	"CD"	"IBS-C"	"IBS"	57	23.9	"female"	"white"	"vaginal"	"both"	6	2	3	"good"	"no"	1	1	0	2	2	"never"	"no"	NA	10007558	943.08	282.87	278.24	157.5	132.09	303.04	455.07	95.17	47.29
+32	"C"	"CD"	"IBS-C"	"IBS"	62	21.6	"female"	"white"	"vaginal"	"bottle"	6	4	4	"fair"	"yes"	1	1	0	0	2	"2_4_per_month"	"no"	NA	10007570	1150.42	497.04	225.97	252.27	127.05	156	74.66	125.94	85.09
+44	"C"	"CD"	"IBS-C"	"IBS"	44	21.61	"female"	"white"	"vaginal"	"unknown"	1	0	0	"excellent"	"no"	1	1	3	5	1	"once_per_month"	"no"	NA	10007582	290.17	977.59	110.89	194.17	174.43	436.96	439.16	0	71.06
+57	"C"	"CD"	"IBS-C"	"IBS"	24	24.55	"female"	"white"	"vaginal"	"breast"	2	1	3	"very good"	"yes"	1	1	5	3	5	"2_4_per_month"	"no"	NA	10007595	1196.8	239.92	331.9	406.96	246.19	102.62	56.2	60.5	53.34
+63	"C"	"CD"	"IBS-C"	"IBS"	21	24.92	"female"	"white"	"vaginal"	"both"	3	1	0	"good"	"yes"	1	1	5	8	8	"2_4_per_month"	"no"	NA	10007601	213.57	513.87	337.43	91.75	479.62	149.93	644.92	195.68	67.61
+64	"C"	"CD"	"IBS-C"	"IBS"	54	33.84	"female"	"white"	"vaginal"	"bottle"	7	5	1	"good"	"no"	2	1	0	7	8	"never"	"yes"	2	10007602	809.83	531.49	799.73	108.72	345.12	39.69	27.27	0	32.51
+68	"C"	"CD"	"IBS-C"	"IBS"	43	30.77	"female"	"white"	"vaginal"	"bottle"	3	1	3	"good"	"yes"	2	2	0	2	7	"2_4_per_month"	"yes"	1	10007606	851.95	312.61	567.84	509.75	249.07	92.99	47.31	12.08	50.78
+69	"C"	"CD"	"IBS-C"	"IBS"	24	19.99	"female"	"white"	"C-section"	"both"	10	4	6	"fair"	"no"	1	1	0	3	2	"once_per_month"	"no"	NA	10007607	926.01	184.04	692.92	249.69	111.74	240.3	181.25	56.44	52
+72	"C"	"CD"	"IBS-C"	"IBS"	42	36.96	"female"	"white"	"vaginal"	"bottle"	4	2	0	"fair"	"no"	2	1	5	5	5	"2_4_per_month"	"no"	NA	10007610	862.2	520.25	200.46	437.06	313.01	212.6	0	0	148.81
+73	"C"	"CD"	"IBS-C"	"IBS"	27	20.71	"female"	"white"	"C-section"	"unknown"	9	4	3	"good"	"no"	1	1	3	5	7	"once_per_month"	"yes"	1	10007611	452.2	327.99	404.71	107.74	404.97	204.21	613.06	95.65	83.88
+2	"D"	"CD"	"IBS-D"	"IBS"	53	21.34	"female"	"white"	"vaginal"	"bottle"	0	0	0	"very good"	"no"	1	1	1	4	3	"2_4_per_month"	"no"	NA	10007540	787.45	301.99	840.67	166.93	443.97	86.15	0	48.53	18.71
+6	"D"	"CD"	"IBS-D"	"IBS"	59	26.29	"male"	"white"	"vaginal"	"both"	12	12	8	"fair"	"no"	NA	1	0	1	7	"once_per_month"	"yes"	2	10007544	779.74	395.91	993.06	36.77	245.73	76.31	129.36	37.54	0
+13	"D"	"CD"	"IBS-D"	"IBS"	35	40.77	"male"	"white"	"vaginal"	"breast"	4	2	7	"very good"	"yes"	1	2	1	3	5	"2_3_per_week"	"yes"	1	10007551	1058.14	336.71	242.82	659.91	147.62	65.82	80.38	60.83	42.17
+15	"D"	"CD"	"IBS-D"	"IBS"	55	30.17	"female"	"white"	"vaginal"	"unknown"	4	0	1	"excellent"	"no"	3	1	1	1	3	"once_per_month"	"no"	NA	10007553	607.61	418.65	414.82	617	307.86	29.18	89.65	111.31	98.32
+21	"D"	"CD"	"IBS-D"	"IBS"	28	19.3	"female"	"white"	"vaginal"	"breast"	2	1	3	"poor"	"no"	1	2	0	0	2	"2_3_per_week"	"no"	NA	10007559	NA	NA	NA	NA	NA	NA	NA	NA	NA
+22	"D"	"CD"	"IBS-D"	"IBS"	29	28	"female"	"white"	"vaginal"	"unknown"	8	0	2	"excellent"	"no"	1	2	1	6	5	"2_3_per_week"	"yes"	1	10007560	1211.49	600.93	254.76	376.19	97.47	114.72	14.56	0	24.28
+23	"D"	"CD"	"IBS-D"	"IBS"	35	33.2	"male"	"white"	"vaginal"	"bottle"	10	15	4	"good"	"yes"	4	1	1	1	1	"2_3_per_week"	"yes"	1	10007561	2126.78	278.64	253.11	27.13	8.74	0	0	0	0
+27	"D"	"CD"	"IBS-D"	"IBS"	26	22.1	"female"	"white"	"vaginal"	"breast"	8	9	3	"good"	"no"	1	1	8	8	8	"once_per_month"	"no"	NA	10007565	266.81	720.18	132.28	271.42	420.81	343.06	170.22	352.1	17.5
+29	"D"	"CD"	"IBS-D"	"IBS"	31	22.5	"male"	"white"	"unknown"	"both"	6	4	2	"good"	"yes"	1	1	6	2	2	"2_4_per_month"	"no"	NA	10007567	1000.8	433.75	343.24	223.56	91.52	287.81	134.54	163.49	15.69
+30	"D"	"CD"	"IBS-D"	"IBS"	21	24.73	"female"	"white"	"vaginal"	"both"	7	1	5	"very good"	"yes"	1	1	5	6	7	"2_3_per_week"	"no"	NA	10007568	1042.82	301.34	284.88	305.53	397.54	44.95	121.76	170.45	25.12
+34	"D"	"CD"	"IBS-D"	"IBS"	42	38.27	"female"	"white"	"vaginal"	"bottle"	7	4	8	"very good"	"yes"	1	1	4	8	8	"2_4_per_month"	"no"	NA	10007572	1165.73	385.27	276.7	169.16	226.98	148.39	39.69	256.14	26.32
+38	"D"	"CD"	"IBS-D"	"IBS"	28	20.6	"female"	"white"	"vaginal"	"bottle"	2	0	1	"fair"	"yes"	1	1	0	0	3	"2_4_per_month"	"no"	NA	10007576	1299.04	509.87	236.34	292.81	221.98	67.77	0	14.54	52.06
+39	"D"	"CD"	"IBS-D"	"IBS"	44	47.55	"female"	"white"	"vaginal"	"both"	6	1	3	"very good"	"yes"	1	1	6	6	6	"2_4_per_month"	"yes"	2	10007577	1397.69	426.6	78.79	157.2	274.87	201.22	78.31	29.35	50.33
+19	"H"	"H"	"Healthy"	"Healthy"	54	31.5	"female"	"white"	"vaginal"	"bottle"	2	0	1	"excellent"	"no"	1	1	0	1	5	"2_4_per_month"	"no"	NA	10007557	887.08	416.21	438.84	413.64	252.27	47.58	144.74	0	93.99
+41	"D"	"CD"	"IBS-D"	"IBS"	61	27.59	"female"	"white"	"vaginal"	"bottle"	10	11	7	"poor"	"no"	1	1	0	0	4	"2_4_per_month"	"no"	NA	10007579	1169.73	522.84	180.99	210.55	293.25	115.95	201.1	0	0
+46	"D"	"CD"	"IBS-D"	"IBS"	53	35.3	"female"	"white"	"unknown"	"bottle"	9	9	7	"good"	"yes"	1	1	0	3	5	"6_or_more_per_week"	"yes"	4	10007584	411.83	605.79	311.82	531.93	289.12	263.17	123.39	71.66	85.69
+54	"D"	"CD"	"IBS-D"	"IBS"	27	26.5	"female"	"white"	"C-section"	"both"	7	2	4	"good"	"no"	1	1	0	1	4	"2_4_per_month"	"no"	NA	10007592	1712.23	187.11	190.56	223.93	120.34	77.47	120.04	10.35	52.38
+55	"D"	"CD"	"IBS-D"	"IBS"	22	20.7	"female"	"white"	"vaginal"	"both"	10	0	7	"excellent"	"no"	1	1	3	1	1	"once_per_month"	"no"	NA	10007593	545.07	448.26	565.25	242.06	253.63	160.99	319.78	114.14	45.25
+3	"H"	"H"	"Healthy"	"Healthy"	42	26.22	"female"	"white"	"vaginal"	"both"	4	0	2	"excellent"	"no"	1	1	2	3	6	"2_4_per_month"	"no"	NA	10007541	811.46	387.28	148.34	615.83	264.48	278.69	39.56	90.75	58.02
+11	"H"	"H"	"Healthy"	"Healthy"	35	27.02	"male"	"white"	"vaginal"	"breast"	0	0	0	"very good"	"yes"	2	1	2	0	0	"4_5_per_week"	"yes"	1	10007549	417.81	460.5	435.56	640.9	194.72	256.53	154.62	71.06	62.65
+25	"H"	"H"	"Healthy"	"Healthy"	25	23.28	"female"	"white"	"C-section"	"unknown"	9	6	3	"fair"	"no"	3	1	5	0	8	"2_4_per_month"	"no"	NA	10007563	1108.62	590.89	410.95	161.31	289.74	130.76	0	0	2.15
+26	"H"	"H"	"Healthy"	"Healthy"	28	23.65	"female"	"white"	"vaginal"	"both"	7	2	8	"good"	"no"	1	1	1	2	2	"2_3_per_week"	"no"	NA	10007564	749.28	603.39	327.56	310.98	206.88	231.12	116.99	82.89	65.28
+31	"H"	"H"	"Healthy"	"Healthy"	26	30.34	"male"	"asian"	"unknown"	"bottle"	2	4	3	"very good"	"no"	1	1	5	5	2	"2_4_per_month"	"yes"	1	10007569	NA	NA	NA	NA	NA	NA	NA	NA	NA
+37	"H"	"H"	"Healthy"	"Healthy"	33	22	"female"	"asian"	"C-section"	"both"	6	1	1	"very good"	"no"	1	1	0	1	3	"2_4_per_month"	"no"	NA	10007575	1068.13	294.26	422.36	214.85	275.2	312.4	88.13	0	19.07
+47	"H"	"H"	"Healthy"	"Healthy"	26	25.15	"female"	"white"	"vaginal"	"breast"	1	0	0	"very good"	"no"	1	1	4	3	5	"2_3_per_week"	"no"	NA	10007585	1177.96	325.94	301.1	289.48	94.04	158.21	272.62	45.42	29.61
+48	"H"	"H"	"Healthy"	"Healthy"	24	25.12	"female"	"white"	"vaginal"	"bottle"	1	0	5	"excellent"	"no"	1	1	3	2	2	"2_4_per_month"	"no"	NA	10007586	922.54	376.89	417.01	31.5	207.69	459.14	243.41	29.27	6.91
+24	"H"	"H"	"Healthy"	"Healthy"	52	25.64	"female"	NA	"vaginal"	"bottle"	4	0	0	"very good"	"no"	1	1	0	5	1	"2_3_per_week"	"no"	NA	10007562	736.33	478.55	491.03	217.68	403.38	223.56	66.35	49.19	28.31
+49	"H"	"H"	"Healthy"	"Healthy"	53	27.15	"male"	"white"	"vaginal"	"both"	4	0	1	"very good"	"no"	1	1	0	1	7	"4_5_per_week"	"yes"	1	10007587	1128.6	336.64	460.51	216.1	158.04	217.56	143.69	0	33.27
+60	"H"	"H"	"Healthy"	"Healthy"	32	42.8	"female"	"white"	"vaginal"	"bottle"	5	1	4	"fair"	"no"	3	1	0	0	3	"2_3_per_week"	"no"	NA	10007598	1102.06	367.07	262.67	480.65	186.59	58.44	125.91	82.36	28.62
+67	"H"	"H"	"Healthy"	"Healthy"	34	26.59	"male"	"white"	"vaginal"	"both"	3	0	0	"good"	"no"	1	1	4	1	8	"2_4_per_month"	"no"	NA	10007605	682.34	348.93	692.65	167.07	148.23	95	360.12	196.74	3.29
+74	"H"	"H"	"Healthy"	"Healthy"	27	21.06	"female"	"white"	"C-section"	"unknown"	2	1	1	"excellent"	"no"	1	1	1	5	7	"once_per_month"	"yes"	1	10007612	502.43	529.95	560.57	248.76	326.84	177.63	155.66	78.27	114.28
+75	"H"	"H"	"Healthy"	"Healthy"	59	22.45	"female"	"white"	"vaginal"	"both"	0	2	0	"very good"	"no"	1	1	4	6	7	"4_5_per_week"	"no"	NA	10007613	489.91	578.73	254.01	420.34	453.9	150.9	318.53	0	28.1
+79	"H"	"H"	"Healthy"	"Healthy"	49	40.3	"female"	NA	NA	NA	0	0	8	"excellent"	"no"	2	1	1	1	8	"2_4_per_month"	"no"	NA	10007617	674.36	669.52	72.98	336.46	784.11	48.27	0	65.35	43.36
