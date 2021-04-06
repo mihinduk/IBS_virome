@@ -1,0 +1,88 @@
+Category	Species	Contig
+Podoviridae	crAss-like viruses	contig_17
+Podoviridae	crAss-like viruses	contig_214
+Siphoviridae	Rhodococcus virus Pepy6	contig_336
+Siphoviridae	Rhodococcus virus Pepy7	contig_313
+Siphoviridae	Rhodococcus virus Pepy8	contig_371
+Microviridae	Chlamydiamicrovirus undefined species	contig_856
+Microviridae	Chlamydiamicrovirus undefined species	contig_204
+Microviridae	Chlamydiamicrovirus undefined species	contig_2417
+Microviridae	Chlamydiamicrovirus undefined species	contig_355
+Microviridae	Microviridae sp.	contig_1062
+Microviridae	Microviridae sp.	contig_1137
+Microviridae	Microviridae sp.	contig_1281
+Microviridae	Microviridae sp.	contig_1366
+Microviridae	Microviridae sp.	contig_1777
+Microviridae	Microviridae sp.	contig_1821
+Microviridae	Microviridae sp.	contig_2224
+Microviridae	Microviridae sp.	contig_2238
+Microviridae	Microviridae sp.	contig_2244
+Microviridae	Microviridae sp.	contig_763
+Microviridae	Poophage MBI-2016a	contig_1086
+Microviridae	Poophage MBI-2016a	contig_1372
+Microviridae	Poophage MBI-2016a	contig_1388
+Microviridae	Spiromicrovirus undefined species	contig_394
+Microviridae	unclassified Microviridae sp.	contig_1991
+Microviridae	unclassified Microviridae sp.	contig_2094
+Myoviridae	Cronobacter virus CR3	contig_2365
+Myoviridae	Lactobacillus virus LBR48	contig_1056
+Potyviridae	Squash vein yellowing virus isolate IL	contig_1706
+Potyviridae	Squash vein yellowing virus isolate IL	contig_2338
+Potyviridae	Squash vein yellowing virus isolate IL	contig_660
+Virgaviridae	Cucumber green mottle mosaic virus isolate ABCA13-01	contig_1135
+Virgaviridae	Tomato mosaic virus	contig_2403
+Dark matter	Dark matter_contig_1142	contig_1142
+Dark matter	Dark matter_contig_1156	contig_1156
+Dark matter	Dark matter_contig_1367	contig_1367
+Dark matter	Dark matter_contig_147	contig_147
+Dark matter	Dark matter_contig_1587	contig_1587
+Dark matter	Dark matter_contig_1957	contig_1957
+Dark matter	Dark matter_contig_2000	contig_2000
+Dark matter	Dark matter_contig_2208	contig_2208
+Dark matter	Dark matter_contig_2251	contig_2251
+Dark matter	Dark matter_contig_424	contig_424
+Dark matter	Dark matter_contig_563	contig_563
+Dark matter	Dark matter_contig_684	contig_684
+Dark matter	Dark matter_contig_832	contig_832
+Dark matter	Dark matter_contig_942	contig_942
+Dark matter	Dark matter_contig_1097	contig_1097
+Dark matter	Dark matter_contig_1116	contig_1116
+Dark matter	Dark matter_contig_1214	contig_1214
+Dark matter	Dark matter_contig_1216	contig_1216
+Dark matter	Dark matter_contig_1271	contig_1271
+Dark matter	Dark matter_contig_1331	contig_1331
+Dark matter	Dark matter_contig_1356	contig_1356
+Dark matter	Dark matter_contig_1431	contig_1431
+Dark matter	Dark matter_contig_1439	contig_1439
+Dark matter	Dark matter_contig_1441	contig_1441
+Dark matter	Dark matter_contig_1615	contig_1615
+Dark matter	Dark matter_contig_1659	contig_1659
+Dark matter	Dark matter_contig_1677	contig_1677
+Dark matter	Dark matter_contig_1682	contig_1682
+Dark matter	Dark matter_contig_1707	contig_1707
+Dark matter	Dark matter_contig_1775	contig_1775
+Dark matter	Dark matter_contig_1792	contig_1792
+Dark matter	Dark matter_contig_1893	contig_1893
+Dark matter	Dark matter_contig_1975	contig_1975
+Dark matter	Dark matter_contig_1983	contig_1983
+Dark matter	Dark matter_contig_2070	contig_2070
+Dark matter	Dark matter_contig_2077	contig_2077
+Dark matter	Dark matter_contig_2110	contig_2110
+Dark matter	Dark matter_contig_2135	contig_2135
+Dark matter	Dark matter_contig_2268	contig_2268
+Dark matter	Dark matter_contig_2273	contig_2273
+Dark matter	Dark matter_contig_2317	contig_2317
+Dark matter	Dark matter_contig_2327	contig_2327
+Dark matter	Dark matter_contig_2351	contig_2351
+Dark matter	Dark matter_contig_309	contig_309
+Dark matter	Dark matter_contig_538	contig_538
+Dark matter	Dark matter_contig_598	contig_598
+Dark matter	Dark matter_contig_612	contig_612
+Dark matter	Dark matter_contig_622	contig_622
+Dark matter	Dark matter_contig_627	contig_627
+Dark matter	Dark matter_contig_675	contig_675
+Dark matter	Dark matter_contig_746	contig_746
+Dark matter	Dark matter_contig_818	contig_818
+Dark matter	Dark matter_contig_848	contig_848
+Dark matter	Dark matter_contig_922	contig_922
+Dark matter	Dark matter_contig_2293	contig_2293
